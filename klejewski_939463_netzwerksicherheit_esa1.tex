@@ -91,7 +91,7 @@ Um das Passwort zu finden, waren folgende Schritte notwendig:
 	\item Paket 11 ist das erste von Wireshark als Telnet erkannte Paket (die TCP-Verbindung selbst beginnt bei Paket 8).
 	\item Der TCP Stream wurde gefolgt, um die Daten im Klartext zu sehen.
 	\item Rechtsklick auf Paket 11 > Follow > TCP Stream (Alternativ: \texttt{Ctrl+Alt+Shift+F} auf Paket 11)
-	\item Das Passwort wurde im Klartext sichtbar gemacht. (Abb. \ref{fig:a-stream})
+	\item Das Passwort wurde im Klartext sichtbar gemacht. (Abb.~~ref{fig:a-stream})
 \end{enumerate}
 
 
@@ -113,28 +113,40 @@ Um das Passwort zu finden, waren folgende Schritte notwendig:
 %     Jeweils: Befehl + Ausgabe + Erklaerung. ---
 
 \subsection{Scan 1: \emph{(z.\,B. SYN-Scan / Top-Ports)}}
-
+Bei diesem Scan wird ein SYN-Scan durchgeführt, um die Top-Ports des Zielservers zu ermitteln, das heißt die Ports, die statistisch am häufigsten verwendet werden.
+Da hier rohe Pakete gesendet werden, wird sudo Zugriff benötigt.
 \begin{lstlisting}[caption={nmap-Befehl Scan 1}]
-nmap -sS nwsmooc.mooin.org
+sudo nmap -sS nwsmooc.mooin.org
 \end{lstlisting}
-
-\emph{Erklärung der Parameter und der Ausgabe hier.}
+Der Scan (Abb. \ref{fig:b-scan1}) zeigt 3 offene Ports: 22/tcp, 80/tcp, und 443/tcp, was auf einen Webserver, wahrscheinlich mit SSH zur Wartung, hinweist. \\
+Zusätzlich sieht man 997 Ports als \texttt{filtered}, dort werden Pakete also ohne Antwort (vermutlich durch eine Firewall) verworfen.
 
 \begin{figure}[H]
   \centering
-  % \includegraphics[width=0.9\textwidth]{screenshots/b_scan1.png}
+  \includegraphics[width=\textwidth]{screenshots/screenshot_result_2_1.png}
   \caption{Ergebnis Scan 1.}
   \label{fig:b-scan1}
 \end{figure}
 
 \subsection{Scan 2: \emph{(z.\,B. Dienst-/Versionserkennung)}}
-
+Beim zweiten Scan sollen die Dienste und ihre Versionsnummern des Zielservers an den jeweiligen Ports ermittelt werden.
 \begin{lstlisting}[caption={nmap-Befehl Scan 2}]
-nmap -sV nwsmooc.mooin.org
+sudo nmap -sV nwsmooc.mooin.org
 \end{lstlisting}
+Beim ersten Scan wurden die offenen Ports ermittelt und die jeweiligen Dienste nur anhand der Portnummer erraten. Mit dem Parameter -sV werden diese durch nmap aktiv verifiziert. Dabei verbindet sich nmap aktiv mit jedem offenen Port und schickt \emph{Probes}, also gezielte Anfragen, um die Dienste zu erkennen.
 
-\emph{Erklärung hier.}
+Die Antworten, die der jeweilige Dienst zurückschickt kann nmap gegen eine Signaturdatenbank abgleichen und somit die tatsächliche Software und oft die Versionsnummer auslesen.
 
+Das Ergebnis des Scans ist in Abb.~\ref{fig:b-scan2} dargestellt. Der Scan dauerte länger als der erste Scan, da nmap nun für jeden offenen Port eine Verbindung aufbauen muss und Probes senden muss.
+
+Der Scan zeigt OpenSSH 8.4p1 auf Port 22 (das Banner verrät Debian 11 als Betriebssystem) sowie Apache auf den Ports 80 und 443, dessen Versionsnummer jedoch nicht dargestellt wird.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{screenshots/screenshot_result_2_2.png}
+  \caption{Ergebnis des zweiten nmap-Scans mit Dienst-/Versionserkennung.}
+  \label{fig:b-scan2}
+\end{figure}
 \subsection{Scan 3: \emph{(z.\,B. Betriebssystemerkennung)}}
 
 \begin{lstlisting}[caption={nmap-Befehl Scan 3}]
@@ -147,7 +159,7 @@ nmap -O nwsmooc.mooin.org
 
 \begin{figure}[H]
   \centering
-  % \includegraphics[width=0.9\textwidth]{screenshots/b_wireshark.png}
+  \includegraphics[width=0.9\textwidth]{screenshots/screenshot_result_2_2.png}
   \caption{Kommentierter Wireshark-Mitschnitt eines nmap-Scans.}
   \label{fig:b-wireshark}
 \end{figure}
