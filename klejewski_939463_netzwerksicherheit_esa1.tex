@@ -174,7 +174,7 @@ Das Ergebnis (Abb.~\ref{fig:b-wireshark}) zeigt das typische Muster des halboffe
   \item Paket 7: Der Server antwortet mit \texttt{[SYN, ACK]}. Das bedeutet, dass Port 443 offen ist und Verbindungen annimmt.
   \item Paket 8: nmap vollendet den Handshake nicht mit einem ACK, sondern sendet sofort ein \texttt{[RST]} und bricht die Verbindung ab.
 \end{enumerate}
-Da nmap aus dem \texttt{[SYN, ACK]} bereits weiß, dass der Port offen ist, wird die Verbindung nie vollständig aufgebaut. Genau daher stammt die Bezeichnung \emph{halboffener Scan}. Wireshark hebt die \texttt{[RST]}-Pakete rot hervor, wodurch sich das Muster über die mehrfachen Scan-Durchläufe gut erkennen lässt.
+Da nmap aus dem \texttt{[SYN, ACK]} bereits weiß, dass der Port offen ist, wird die Verbindung nie vollständig aufgebaut. Daher stammt auch die Bezeichnung \emph{halboffener Scan}. Wireshark hebt die \texttt{[RST]}-Pakete rot hervor, wodurch sich gut ein Muster über die mehrfachen Scan-Durchläufe erkennen lässt.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{screenshots/b_wireshark.png}
