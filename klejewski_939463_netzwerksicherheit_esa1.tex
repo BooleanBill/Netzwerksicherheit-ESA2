@@ -147,20 +147,38 @@ Der Scan zeigt OpenSSH 8.4p1 auf Port 22 (das Banner verrät Debian 11 als Betri
   \caption{Ergebnis des zweiten nmap-Scans mit Dienst-/Versionserkennung.}
   \label{fig:b-scan2}
 \end{figure}
-\subsection{Scan 3: \emph{(z.\,B. Betriebssystemerkennung)}}
 
+
+\subsection{Scan 3: \emph{(z.\,B. Betriebssystemerkennung)}}
+Der dritte und letzte Scan, mit dem Parameter -O, soll das Betriebssystem der Zielmaschine ermitteln. Dazu nutzt nmap TCP/IP-Fingerprinting, also die Analyse, wie der TCP/IP-Stack des Ziels auf bestimmte Pakete reagiert. Da hierfür rohe Pakete gesendet werden, wird wieder sudo benötigt.
 \begin{lstlisting}[caption={nmap-Befehl Scan 3}]
-nmap -O nwsmooc.mooin.org
+sudo nmap -O nwsmooc.mooin.org
 \end{lstlisting}
 
-\emph{Erklärung hier.}
+Das Ergebnis ist in Abb.~\ref{fig:b-scan3} dargestellt. nmap gibt die Warnung aus, dass die Ergebnisse unzuverlässig sind, da nicht sowohl offene als auch geschlossene Ports gefunden wurden. Grund dafür ist die Firewall: Die 997 gefilterten Ports antworten nicht, sodass nmap die nötige Referenz für ein zuverlässiges Fingerprinting fehlt (filtered ist nicht dasselbe wie geschlossen). Entsprechend rät nmap nur (\texttt{JUST GUESSING}) und nennt mehrere mögliche Systeme, unter anderem Linux 4.X/5.X oder MikroTik RouterOS, jeweils mit maximal 94\% Wahrscheinlichkeit. Ein eindeutiges Ergebnis ist nicht möglich.
 
-\subsection{Beobachtung in Wireshark}
-
+Auffällig ist, dass das genauere Indiz für das Betriebssystem bereits aus Scan 2 stammt: Das SSH-Banner verriet dort \texttt{Debian 11} und damit ein Linux-System. Die aktiven Dienst-Banner lieferten hier also ein präziseres Ergebnis als das dedizierte OS-Fingerprinting, da die Firewall letzteres erschwert.
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.9\textwidth]{screenshots/screenshot_result_2_2.png}
-  \caption{Kommentierter Wireshark-Mitschnitt eines nmap-Scans.}
+  \includegraphics[width=\textwidth]{screenshots/screenshot_result_2_3.png}
+  \caption{Ergebnis des dritten nmap-Scans mit Betriebssystemerkennung.}
+  \label{fig:b-scan3}
+\end{figure}
+
+\subsection{Beobachtung in Wireshark}
+Während eines SYN-Scans (\texttt{-sS}) wurde der Datenverkehr zum Zielserver mit Wireshark mitgeschnitten. Als Capture-Filter wurde \texttt{host 91.99.63.152} gesetzt, als Anzeigefilter \texttt{tcp.port == 443}, um den Verkehr auf einen offenen Port zu beschränken.
+
+Das Ergebnis (Abb.~\ref{fig:b-wireshark}) zeigt das typische Muster des halboffenen SYN-Scans:
+\begin{enumerate}
+  \item Paket 2: Kali (\texttt{192.168.64.2}) sendet ein \texttt{[SYN]} an Port 443 des Servers, also die Anfrage, ob der Port offen ist.
+  \item Paket 7: Der Server antwortet mit \texttt{[SYN, ACK]}. Das bedeutet, dass Port 443 offen ist und Verbindungen annimmt.
+  \item Paket 8: nmap vollendet den Handshake nicht mit einem ACK, sondern sendet sofort ein \texttt{[RST]} und bricht die Verbindung ab.
+\end{enumerate}
+Da nmap aus dem \texttt{[SYN, ACK]} bereits weiß, dass der Port offen ist, wird die Verbindung nie vollständig aufgebaut. Genau daher stammt die Bezeichnung \emph{halboffener Scan}. Wireshark hebt die \texttt{[RST]}-Pakete rot hervor, wodurch sich das Muster über die mehrfachen Scan-Durchläufe gut erkennen lässt.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/b_wireshark.png}
+  \caption{Kommentierter Wireshark-Mitschnitt eines SYN-Scans: SYN, SYN/ACK und RST auf Port 443.}
   \label{fig:b-wireshark}
 \end{figure}
 
