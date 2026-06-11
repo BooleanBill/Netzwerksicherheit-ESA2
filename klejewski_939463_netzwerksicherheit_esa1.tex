@@ -186,25 +186,47 @@ Da nmap aus dem \texttt{[SYN, ACK]} bereits weiß, dass der Port offen ist, wird
 %  c) macchanger
 % =====================================================================
 \section{macchanger: Senden mit gefälschter MAC-Adresse}
-
-% --- Was macchanger kann; Vorher/Nachher der MAC; wo die gefaelschte
-%     Adresse in Wireshark sichtbar ist; wie es "richtig" waere. ---
-
+Zunächst soll hier der Ist-Zustand des Systems erfasst werden, um später die Änderung der MAC-Adresse nachvollziehbar zu machen.
 \begin{lstlisting}[caption={Aktuelle MAC anzeigen und ändern}]
-ifconfig
-macchanger -r eth0
+ip link show eth0
+macchanger -s eth0
 \end{lstlisting}
-
-\emph{Erklärung hier: Was passiert, wie sähe der korrekte (echte) Wert aus,
-wo ist die gefälschte MAC im Mitschnitt zu sehen?}
-
+Die oben genannten Befehle zeigen uns zunächst die aktuelle MAC-Adresse des Interfaces \texttt{eth0}, \texttt{e6:bc:e8:0b:99:24}. (Abb.~\ref{fig:mac-before}) \\
+Zu beachten ist, dass die \texttt{Current MAC} und \texttt{Permanent MAC}, die von macchanger angezeigt werden, noch identisch sind. Zusätzlich ist zu erwähnen, dass der Zusatz (unknown) hinter der MAC-Adresse angezeigt wird, da es sich um eine von UTM generierte MAC-Adresse in einer Kali VM handelt und macchanger die MAC-Adresse somit keinem Hersteller zuordnen kann.
 \begin{figure}[H]
   \centering
-  % \includegraphics[width=0.9\textwidth]{screenshots/c_mac_wireshark.png}
-  \caption{Gefälschte MAC-Adresse im Wireshark-Mitschnitt.}
-  \label{fig:c-mac}
+  \includegraphics[width=\textwidth]{screenshots/macchanger_before.png}
+  \caption{MAC-Adresse Ausgangssituation}
+  \label{fig:mac-before}
 \end{figure}
+Anschließend wird die MAC-Adresse des Interfaces \texttt{eth0} mit \texttt{macchanger} geändert. Die Befehle dazu sind folgende:
+\begin{lstlisting}[caption={Ändern der MAC-Adresse}]
+sudo ifconfig eth0 down
+sudo macchanger -r eth0
+sudo ifconfig eth0 up
+\end{lstlisting}
+Das Interface muss vor der Änderung deaktiviert werden, da die MAC-Adresse im laufenden Betrieb nicht gewechselt werden kann. Das Ergebnis der Ausführung der Befehle ist in Abb.~\ref{fig:mac-after} zu sehen. macchanger zeigt beim Ausführen des Befehls nun zusätzlich zu den vorherigen MAC-Adressen die \texttt{New MAC} an: \texttt{d2:3f:d6:18:90:5c}.
+Erneutes Ausführen der Befehle aus Abb.~\ref{fig:mac-before} zeigt, dass die MAC-Adresse erfolgreich geändert wurde. Die \texttt{Permanent MAC} unterscheidet sich nun von der \texttt{Current MAC}.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/macchanger_after.png}
+  \caption{MAC-Adresse nach der Änderung}
+  \label{fig:mac-after}
+\end{figure}
+\subsection{Aufzeichnung mit Wireshark}
+Im Rahmen der Aufgabe soll nun mithilfe von Wireshark aufgezeichnet werden, dass die gefälschte MAC-Adresse tatsächlich für den Datenverkehr verwendet wird. Dazu wird auf dem Interface \texttt{eth0} mitgeschnitten und als Capture-Filter \texttt{ether host d2:3f:d6:18:90:5c} gesetzt. Anschließend wird mit einem Ping Datenverkehr erzeugt:
+\begin{lstlisting}[caption={Erzeugen von Datenverkehr}]
+ping -c 4 nwsmooc.mooin.org
+\end{lstlisting}
+Das Ergebnis ist in Abb.~\ref{fig:mac-wireshark} zu sehen. Im aufgeklappten \texttt{Ethernet II}-Header eines ausgehenden Pakets ist als \texttt{Source} die gefälschte MAC-Adresse \texttt{d2:3f:d6:18:90:5c} eingetragen. Ohne die Manipulation würde hier die echte MAC-Adresse \texttt{e6:bc:e8:0b:99:24} stehen. Die Fälschung wirkt sich also direkt auf jedes Paket aus, das die Maschine verlässt.
 
+Zu beachten ist, dass als \texttt{Destination} nicht die MAC-Adresse des Zielservers, sondern die des Gateways (\texttt{86:2f:57:ec:34:65}) eingetragen ist. MAC-Adressen sind nur im lokalen Netzsegment gültig und werden bei jedem Router-Hop ersetzt. Die gefälschte MAC-Adresse ist daher nur bis zum Gateway sichtbar, der eigentliche Zielserver (\texttt{91.99.63.152}) bekommt sie nicht zu sehen.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/macchanger_wireshark.png}
+  \caption{Gefälschte MAC-Adresse als \texttt{Source} im Ethernet-Header.}
+  \label{fig:mac-wireshark}
+\end{figure}
 % Optionaler zweiter Schritt: zusaetzlich IP-Adresse per DHCP neu anfordern.
 % \subsection{Optional: Neuzuweisung der IPv4-Adresse}
 
