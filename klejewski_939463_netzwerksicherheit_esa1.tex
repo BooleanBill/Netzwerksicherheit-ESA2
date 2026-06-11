@@ -134,7 +134,7 @@ Um das Passwort zu finden, waren folgende Schritte notwendig:
 	\item Paket 11 ist das erste von Wireshark als Telnet erkannte Paket (die TCP-Verbindung selbst beginnt bei Paket 8).
 	\item Der TCP Stream wurde gefolgt, um die Daten im Klartext zu sehen.
 	\item Rechtsklick auf Paket 11 > Follow > TCP Stream (Alternativ: \texttt{Ctrl+Alt+Shift+F} auf Paket 11)
-	\item Das Passwort wurde im Klartext sichtbar gemacht. (Abb.~~ref{fig:a-stream})
+	\item Das Passwort wurde im Klartext sichtbar gemacht. (Abb.~\ref{fig:a-stream})
 \end{enumerate}
 
 
@@ -327,7 +327,7 @@ Der Scan ergibt insgesamt sieben Alerts unterschiedlichen Schweregrades. Im Erge
 \subsection{Finding 1: Path Traversal (Risk: High, Confidence: Low)}
 ZAP meldet auf dem WordPress-Endpunkt \texttt{/wp-json/oembed/1.0/embed} eine mögliche Path-Traversal-Schwachstelle über den Parameter \texttt{url}. Path Traversal (CWE-22) bezeichnet das Ausbrechen aus dem vorgesehenen Verzeichnis durch manipulierte Pfadangaben, um auf andere Dateien des Servers zuzugreifen, und ist grundsätzlich eine kritische Schwachstelle.
 
-Allerdings ist die \texttt{Confidence} hier nur \texttt{Low}, das Evidence-Feld ist leer, und der betroffene oEmbed-Endpunkt nimmt standardmäßig eine \texttt{url} entgegen, weshalb die Heuristik von ZAP hier desöfteren fälschlich anschlägt. Das Finding ist daher mit hoher Wahrscheinlichkeit ein False Positive und müsste manuell verifiziert werden, bevor es als reale Schwachstelle behandelt werden kann. Es ist zwar das angezeigt als das schwerste/kritischste Finding, aufgrund der niedrigen Confidence jedoch mit Vorsicht zu bewerten.
+Allerdings ist die \texttt{Confidence} hier nur \texttt{Low}, das Evidence-Feld ist leer, und der betroffene oEmbed-Endpunkt nimmt standardmäßig eine \texttt{url} entgegen, weshalb die Heuristik von ZAP hier des Öfteren fälschlich anschlägt. Das Finding ist daher mit hoher Wahrscheinlichkeit ein False Positive und müsste manuell verifiziert werden, bevor es als reale Schwachstelle behandelt werden kann. Es ist zwar angezeigt als das schwerste/kritischste Finding, aufgrund der niedrigen Confidence jedoch mit Vorsicht zu bewerten.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{screenshots/zap_path_traversal.png}
@@ -356,32 +356,33 @@ ZAP meldet die Offenlegung eines Unix-Zeitstempels (\texttt{1574485976}) in eine
 \end{figure}
 
 \subsection{Fazit}
-Die Bewertung zeigt, dass der \texttt{Risk}-Wert allein nicht ausreicht: Das scheinabr schwerste Finding (Path Traversal) ist aufgrund niedriger Confidence weniger vertrauenswürdig als das mittlere Finding (CSP) mit hoher Confidence. Für eine klare Einschätzung müssten Risk und Confidence gemeinsam betrachtet und High-Risk-Findings mit niedriger Confidence manuell verifiziert werden.
+Die Bewertung zeigt, dass der \texttt{Risk}-Wert allein nicht ausreicht: Das scheinbar schwerste Finding (Path Traversal) ist aufgrund niedriger Confidence weniger vertrauenswürdig als das mittlere Finding (CSP) mit hoher Confidence. Für eine klare Einschätzung müssten Risk und Confidence gemeinsam betrachtet und High-Risk-Findings mit niedriger Confidence manuell verifiziert werden.
 
 % =====================================================================
 %  e) Google Hacking
 % =====================================================================
 \section{Google Hacking: Drei Beispiele aus der GHDB}
+Unter \emph{Google Hacking} versteht man die gezielte Nutzung von Google-Suchoperatoren, um Softwareinstallationen mit Schwachstellen, sensible Dateien oder fehlkonfigurierte Server aufzufinden. Eine Sammlung solcher Suchanfragen (sogenannter \emph{Dorks}) bietet die Google Hacking Database (GHDB)\footnote{\url{https://www.exploit-db.com/google-hacking-database/}}. Im Rahmen dieser Einsendeaufgabe werden nachfolgend drei selbstgewählte Beispiele erklärt.
 
-% --- Drei selbstgewaehlte Dorks von exploit-db.com/google-hacking-database/
-%     jeweils: Dork + was man damit findet + warum das ein Risiko ist. ---
-
-\subsection{Beispiel 1}
-\begin{lstlisting}[caption={Google-Dork Beispiel 1}]
-<dork hier>
+\subsection{Beispiel 1: Geleakte API-Schlüssel}
+\begin{lstlisting}[caption={GHDB-ID 8298}]
+"_API_KEY="sk-"
 \end{lstlisting}
-\emph{Was findet man damit, und warum ist das relevant?}
+Die Anführungszeichen erzwingen bei Google eine exakte Phrasensuche. Das Muster \texttt{\_API\_KEY=} entspricht der typischen Zuweisung eines API-Schlüssels in Konfigurations- oder Environment-Dateien, und das Präfix \texttt{sk-} kennzeichnet die Secret Keys vieler Dienste (z.\,B. OpenAI oder Stripe). Der Dork findet somit Dateien, in denen versehentlich ein echter, geheimer API-Schlüssel im Klartext veröffentlicht wurde. Ein solcher Schlüssel erlaubt es einem Angreifer, den zugehörigen Dienst auf Kosten des Opfers zu nutzen oder auf dessen Daten zuzugreifen. Besonders in heutiger Zeit, wo die Nutzung von LLMs und GenAI in Unternehmen und Webanwendungen immer mehr zunimmt, ist die Offenlegung von API-Schlüsseln eine wiederkehrende Sicherheitslücke.
 
-\subsection{Beispiel 2}
-\begin{lstlisting}[caption={Google-Dork Beispiel 2}]
-<dork hier>
+\subsection{Beispiel 2: Offene Verzeichnisauflistung}
+\begin{lstlisting}[caption={GHDB-ID 8424}]
+intitle: index of /concrete/Password
 \end{lstlisting}
-\emph{Erklärung hier.}
+Der Operator \texttt{intitle:} beschränkt die Suche auf den Seitentitel. Der Ausdruck \texttt{index of} ist der typische Titel einer automatisch generierten Verzeichnisauflistung, die ein Webserver ausliefert, wenn das Directory Listing aktiviert ist und keine Index-Datei vorliegt. Der Dork findet so Server, bei denen ein Verzeichnis namens \texttt{Password} offen im Web zugänglich ist. Hier kommen also zwei Fehler zusammen - ein aktiviertes Directory Listing, das die Dateistruktur preisgibt, und ein sensibles Verzeichnis, welches ohne Authentifizierung erreichbar ist. Ein Angreifer könnte die enthaltenen Dateien somit direkt einsehen oder herunterladen.
 
-\subsection{Beispiel 3}
-\begin{lstlisting}[caption={Google-Dork Beispiel 3}]
-<dork hier>
+\subsection{Beispiel 3: Verwundbare Geräte zu einer bekannten CVE}
+\begin{lstlisting}[caption={GHDB-ID 8447}]
+intitle:"SSL Network Extender Login" -checkpoint.com
 \end{lstlisting}
-\emph{Erklärung hier.}
+\texttt{intitle:"SSL Network Extender Login"} sucht nach der Login-Oberfläche von Check-Point-Security-Gateways. Das vorangestellte Minus bei \texttt{-checkpoint.com} ist ein Ausschluss-Operator, der die offiziellen Hersteller-Seiten aus den Ergebnissen entfernt, sodass nur die tatsächlich im Betrieb befindlichen Geräte übrig bleiben. Dieser Dork ist explizit der Schwachstelle CVE-2024-24919 zugeordnet, einer 2024 aktiv ausgenutzten Information-Disclosure Sicherheitslücke in Check-Point-Gateways. Er zeigt eine der gefährlichsten Anwendungen von Google Hacking: Statt allgemein nach sensiblen Daten zu suchen, wird die Suche mit einer konkreten, bekannten Schwachstelle kombiniert, um gezielt eine Liste angreifbarer Systeme zu erstellen.
+
+\subsection{Fazit}
+In den drei Beispielen sind unterschiedliche Operatoren (Phrasensuche, \texttt{intitle:}, Ausschluss mit \texttt{-}) und Risikoklassen zu sehen: geleakte Geheimnisse, Server-Fehlkonfigurationen und die gezielte Suche nach verwundbaren Systemen. Google Hacking nutzt dabei also die Tatsache, dass sensible Inhalte ungeschützt im Web stehen und von Suchmaschinen indexiert werden.
 
 \end{document}
