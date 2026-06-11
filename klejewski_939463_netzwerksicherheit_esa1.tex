@@ -319,28 +319,44 @@ Die neue MAC-Adresse (\texttt{5e:0f:74:2c:21:12}) sorgt dafür, dass der DHCP-Se
 % =====================================================================
 %  d) OWASP ZAP
 % =====================================================================
-\section{OWASP ZAP: Schwachstellenanalyse von \texttt{nwsmooc.mooin.org}}
+\section{OWASP ZAP: Schwachstellenanalyse von \texttt{https://nwsmooc.mooin.org}}
+Mit OWASP ZAP soll der Testserver auf Schwachstellen untersucht werden. Dazu wird im Quick-Start-Bereich der \emph{Automated Scan} verwendet, der zunächst die URLs des Ziels per Spider ermittelt und anschließend einen aktiven Scan durchführt. Beim aktiven Scan werden echte Angriffs-Payloads an den Server gesendet, sodass auch auf SQL Injection geprüft wird. ZAP enthält dafür eine dedizierte aktive Scan-Regel, die URL- und Formularparameter mit gültiger und ungültiger SQL-Syntax angreift\footnote{\url{https://www.zaproxy.org/docs/desktop/addons/active-scan-rules/\#id-40018}}.
 
-% --- Aktiver Scan (damit auch SQL Injection geprueft wird).
-%     Die DREI relevantesten Findings auswaehlen und Kritikalitaet bewerten. ---
+Der Scan ergibt insgesamt sieben Alerts unterschiedlichen Schweregrades. Im Ergebnis wird keine SQL-Injection-Schwachstelle gemeldet. Einschränkend ist zu beachten, dass der Server eine Web Application Firewall (WordFence) einsetzt, die während des Scans viele Anfragen mit \texttt{403 Forbidden} blockiert. Ein negatives Ergebnis kann daher auch bedeuten, dass entsprechende Testanfragen durch die Firewall abgefangen wurden, und nicht zwingend, dass keine Schwachstelle existiert. Nachfolgend werden die drei relevantesten Findings (nach Kritikalitätslevel) bewertet.
 
-\emph{Kurzbeschreibung des Vorgehens (aktiver Scan aktiviert) hier.}
+\subsection{Finding 1: Path Traversal (Risk: High, Confidence: Low)}
+ZAP meldet auf dem WordPress-Endpunkt \texttt{/wp-json/oembed/1.0/embed} eine mögliche Path-Traversal-Schwachstelle über den Parameter \texttt{url}. Path Traversal (CWE-22) bezeichnet das Ausbrechen aus dem vorgesehenen Verzeichnis durch manipulierte Pfadangaben, um auf andere Dateien des Servers zuzugreifen, und ist grundsätzlich eine kritische Schwachstelle.
 
-\subsection{Finding 1}
-\emph{Beschreibung, Risiko/Kritikalität, mögliche Gegenmaßnahme.}
-
+Allerdings ist die \texttt{Confidence} hier nur \texttt{Low}, das Evidence-Feld ist leer, und der betroffene oEmbed-Endpunkt nimmt standardmäßig eine \texttt{url} entgegen, weshalb die Heuristik von ZAP hier desöfteren fälschlich anschlägt. Das Finding ist daher mit hoher Wahrscheinlichkeit ein False Positive und müsste manuell verifiziert werden, bevor es als reale Schwachstelle behandelt werden kann. Es ist zwar das angezeigt als das schwerste/kritischste Finding, aufgrund der niedrigen Confidence jedoch mit Vorsicht zu bewerten.
 \begin{figure}[H]
   \centering
-  % \includegraphics[width=0.9\textwidth]{screenshots/d_finding1.png}
-  \caption{ZAP-Finding 1.}
-  \label{fig:d-f1}
+  \includegraphics[width=\textwidth]{screenshots/zap_path_traversal.png}
+  \caption{ZAP-Finding: Path Traversal (Risk High, Confidence Low).}
+  \label{fig:zap-pathtraversal}
 \end{figure}
 
-\subsection{Finding 2}
-\emph{Beschreibung und Bewertung.}
+\subsection{Finding 2: Content Security Policy (CSP) Header Not Set (Risk: Medium, Confidence: High)}
+Der Server setzt auf mehreren Seiten keinen \texttt{Content-Security-Policy}-Header. CSP (CWE-693) ist ein HTTP-Header, mit dem der Server dem Browser mitteilt, aus welchen Quellen Inhalte wie Skripte geladen werden dürfen. Fehlt dieser Header, entfällt eine Schutzschicht gegen Cross-Site-Scripting (XSS) und Injection-Angriffe.
 
-\subsection{Finding 3}
-\emph{Beschreibung und Bewertung.}
+Im Gegensatz zu Finding 1 ist die \texttt{Confidence} hier \texttt{High}. Ob ein Header gesetzt ist oder nicht, lässt sich objektiv prüfen, ein False Positive ist somit ausgeschlossen. Es handelt sich nicht um eine direkt ausnutzbare Lücke, sondern um eine fehlende Verteidigungsschicht, die im Zusammenspiel mit anderen Schwachstellen deren Auswirkung verstärken kann. Die Behebung ist einfach möglich, indem der Header in der Server- bzw. WordPress-Konfiguration gesetzt wird. Dies könnte damit als das praktisch relevanteste der drei Findings betrachtet werden.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/zap_csp.png}
+  \caption{ZAP-Finding: CSP Header Not Set (Risk Medium, Confidence High).}
+  \label{fig:zap-csp}
+\end{figure}
+
+\subsection{Finding 3: Timestamp Disclosure - Unix (Risk: Low, Confidence: Low)}
+ZAP meldet die Offenlegung eines Unix-Zeitstempels (\texttt{1574485976}) in einer Serverantwort (CWE-497). Tatsächlich stammt der Wert aus einer HTML-Element-ID eines WordPress-Embed-Widgets (\texttt{wp-embed-share-tab-wordpress-9-1574485976}) und ist damit kein sicherheitsrelevanter Zeitstempel. Ein offengelegter Zeitstempel bietet außerdem an sich kaum Angriffsfläche, und die \texttt{Confidence} ist nur \texttt{Low}. Die Kritikalität dieses Findings ist daher gering und in der Praxis vernachlässigbar.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/zap_timestamp.png}
+  \caption{ZAP-Finding: Timestamp Disclosure (Risk Low, Confidence Low).}
+  \label{fig:zap-timestamp}
+\end{figure}
+
+\subsection{Fazit}
+Die Bewertung zeigt, dass der \texttt{Risk}-Wert allein nicht ausreicht: Das scheinabr schwerste Finding (Path Traversal) ist aufgrund niedriger Confidence weniger vertrauenswürdig als das mittlere Finding (CSP) mit hoher Confidence. Für eine klare Einschätzung müssten Risk und Confidence gemeinsam betrachtet und High-Risk-Findings mit niedriger Confidence manuell verifiziert werden.
 
 % =====================================================================
 %  e) Google Hacking
