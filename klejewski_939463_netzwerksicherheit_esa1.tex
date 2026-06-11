@@ -155,7 +155,7 @@ Um das Passwort zu finden, waren folgende Schritte notwendig:
 % --- Mindestens DREI Scans mit jeweils unterschiedlichen Parametern.
 %     Jeweils: Befehl + Ausgabe + Erklaerung. ---
 
-\subsection{Scan 1: \emph{(z.\,B. SYN-Scan / Top-Ports)}}
+\subsection{Scan 1: \emph{(z.B. SYN-Scan / Top-Ports)}}
 Bei diesem Scan wird ein SYN-Scan durchgeführt, um die Top-Ports des Zielservers zu ermitteln, das heißt die Ports, die statistisch am häufigsten verwendet werden.
 Da hier rohe Pakete gesendet werden, wird sudo Zugriff benötigt.
 \begin{lstlisting}[caption={nmap-Befehl Scan 1}]
@@ -171,7 +171,7 @@ Zusätzlich sieht man 997 Ports als \texttt{filtered}, dort werden Pakete also o
   \label{fig:b-scan1}
 \end{figure}
 
-\subsection{Scan 2: \emph{(z.\,B. Dienst-/Versionserkennung)}}
+\subsection{Scan 2: \emph{(z.B. Dienst-/Versionserkennung)}}
 Beim zweiten Scan sollen die Dienste und ihre Versionsnummern des Zielservers an den jeweiligen Ports ermittelt werden.
 \begin{lstlisting}[caption={nmap-Befehl Scan 2}]
 nmap -sV nwsmooc.mooin.org
@@ -192,7 +192,7 @@ Der Scan zeigt OpenSSH 8.4p1 auf Port 22 (das Banner verrät Debian 11 als Betri
 \end{figure}
 
 
-\subsection{Scan 3: \emph{(z.\,B. Betriebssystemerkennung)}}
+\subsection{Scan 3: \emph{(z.B. Betriebssystemerkennung)}}
 Der dritte und letzte Scan, mit dem Parameter -O, soll das Betriebssystem der Zielmaschine ermitteln. Dazu nutzt nmap TCP/IP-Fingerprinting, also die Analyse, wie der TCP/IP-Stack des Ziels auf bestimmte Pakete reagiert. Da hierfür rohe Pakete gesendet werden, wird wieder sudo benötigt.
 \begin{lstlisting}[caption={nmap-Befehl Scan 3}]
 sudo nmap -O nwsmooc.mooin.org
@@ -319,7 +319,7 @@ Die neue MAC-Adresse (\texttt{5e:0f:74:2c:21:12}) sorgt dafür, dass der DHCP-Se
 % =====================================================================
 %  d) OWASP ZAP
 % =====================================================================
-\section{OWASP ZAP: Schwachstellenanalyse von \texttt{https://nwsmooc.mooin.org}}
+\section{OWASP ZAP: Schwachstellenanalyse von \texttt{nwsmooc.mooin.org}}
 
 % --- Aktiver Scan (damit auch SQL Injection geprueft wird).
 %     Die DREI relevantesten Findings auswaehlen und Kritikalitaet bewerten. ---
