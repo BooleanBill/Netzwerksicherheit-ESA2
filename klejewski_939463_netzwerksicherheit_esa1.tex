@@ -14,8 +14,19 @@
 \usepackage[ngerman]{babel}      % deutsche Silbentrennung + "Abbildung"/"Tabelle"
 
 % ---------- Layout ----------
-\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage[a4paper,margin=2.5cm,headheight=28pt,headsep=14pt]{geometry}
 \usepackage{parskip}             % Absatzabstand statt Einzug (Geschmackssache)
+
+% ---------- Kopf-/Fusszeile ----------
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Martin Klejewski (939463)\\\small Netzwerksicherheit -- Einsendeaufgabe 1}
+\fancyhead[R]{\raisebox{-0.3\height}{\includegraphics[height=24pt]{img/BHT_Logo.png}}}
+\fancyfoot[C]{\thepage\ / \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
 
 % ---------- Grafik & Floats ----------
 \usepackage{graphicx}            % \includegraphics
@@ -71,8 +82,40 @@
 
 \begin{document}
 
-\maketitle
+% ---------- Deckblatt ----------
+\begin{titlepage}
+  \thispagestyle{empty}
+  \centering
+  \includegraphics[width=0.45\textwidth]{img/BHT_Logo.png}\\[2cm]
+
+  {\large Berliner Hochschule für Technik\\
+  Fachbereich VI -- Informatik und Medien\\
+  Studiengang IT-Sicherheit\par}
+
+  \vspace{2.5cm}
+  {\Large\bfseries Modul: Netzwerksicherheit\par}
+
+  \vspace{1.5cm}
+  {\huge\bfseries Einsendeaufgabe 1\par}
+  \vspace{0.4cm}
+  {\large Wireshark, nmap, macchanger,\\OWASP ZAP, Google Hacking\par}
+
+  \vfill
+
+  \begin{tabular}{rl}
+    \textbf{Name:}            & Martin Klejewski \\
+    \textbf{Matrikelnummer:}  & 939463 \\
+    \textbf{Studiengang:}     & IT-Sicherheit \\
+    \textbf{Modul:}           & Netzwerksicherheit \\
+    \textbf{Dozent:}          & Tilo Schneider \\
+    \textbf{Abgabe:}          & \today \\
+  \end{tabular}
+
+  \vspace{1.5cm}
+\end{titlepage}
+
 \tableofcontents
+\thispagestyle{empty}
 \newpage
 
 % =====================================================================
@@ -227,8 +270,51 @@ Zu beachten ist, dass als \texttt{Destination} nicht die MAC-Adresse des Zielser
   \caption{Gefälschte MAC-Adresse als \texttt{Source} im Ethernet-Header.}
   \label{fig:mac-wireshark}
 \end{figure}
-% Optionaler zweiter Schritt: zusaetzlich IP-Adresse per DHCP neu anfordern.
-% \subsection{Optional: Neuzuweisung der IPv4-Adresse}
+
+\subsection{Zusätzliche Änderung der IP-Adresse}
+In einem zweiten Schritt soll zusätzlich zur MAC-Adresse auch die zugehörige IP-Adresse verändert werden. Der Ist-Zustand zeigt die aktuelle IPv4-Adresse \texttt{192.168.64.3} bei der zuvor gefälschten MAC-Adresse \texttt{d2:3f:d6:18:90:5c}.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/macchanger_ip_before.png}
+  \caption{MAC- und IP-Adresse vor der Änderung.}
+  \label{fig:mac-ip-bef}
+\end{figure}
+
+Dazu wird zunächst das Interface deaktiviert, anschließend die DHCP-Lease-Datei gelöscht, eine neue MAC-Adresse gesetzt und das Interface wieder aktiviert:
+\begin{samepage}
+\begin{lstlisting}[caption={Neuanforderung der IP-Adresse}]
+sudo ifconfig eth0 down
+sudo rm /var/lib/NetworkManager/internal-21e0e1c9-11db-4060-baca-5154aa2af471-eth0.lease
+sudo macchanger -r eth0
+sudo ifconfig eth0 up
+\end{lstlisting}
+\end{samepage}
+Die Lease-Datei enthält die bisherige DHCP-Zuordnung. Wird sie gelöscht, verwirft der NetworkManager die alte Zuweisung und fordert beim erneuten Aktivieren des Interfaces eine neue IP-Adresse an. Durch die zusätzlich geänderte MAC-Adresse sieht der DHCP-Server zudem ein neues Gerät.
+
+Das Ergebnis ist in Abb.~\ref{fig:mac-ip} zu sehen: Die MAC-Adresse wurde auf \texttt{66:36:5d:78:ec:4a} geändert, und die IPv4-Adresse hat sich von \texttt{192.168.64.3} auf \texttt{192.168.64.4} geändert. Die Neuzuweisung per DHCP war somit erfolgreich.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/macchanger_ip_after.png}
+  \caption{Neue MAC- und IP-Adresse nach dem Löschen der Lease-Datei.}
+  \label{fig:mac-ip}
+\end{figure}
+
+Die Neuzuweisung der IP-Adresse soll zusätzlich mit Wireshark kontrolliert werden. Dazu wird auf \texttt{eth0} mit dem Capture-Filter \texttt{port 67 or port 68} mitgeschnitten (DHCP nutzt die UDP-Ports 67 und 68), während die obigen Befehle erneut ausgeführt werden. Beim Aktivieren des Interfaces handelt der Client per DHCP eine neue Adresse aus.
+
+Das Ergebnis in Abb.~\ref{fig:mac-dhcp} zeigt den vollständigen DHCP-Ablauf (DORA):
+\begin{enumerate}
+  \item \texttt{DHCP Discover}: Der Client hat noch keine IP-Adresse (Quelle \texttt{0.0.0.0}) und sendet einen Broadcast (\texttt{255.255.255.255}), um einen DHCP-Server zu finden.
+  \item \texttt{DHCP Offer}: Der Server (\texttt{192.168.64.1}) bietet die Adresse \texttt{192.168.64.5} an.
+  \item \texttt{DHCP Request}: Der Client fordert die angebotene Adresse offiziell an.
+  \item \texttt{DHCP ACK}: Der Server bestätigt die Zuweisung.
+\end{enumerate}
+Die neue MAC-Adresse (\texttt{5e:0f:74:2c:21:12}) sorgt dafür, dass der DHCP-Server den Client als neues Gerät behandelt und eine neue IP-Adresse vergibt. Die Kontrolle bestätigt somit, dass die Neuzuweisung erfolgreich per DHCP erfolgt ist.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/macchanger_dhcp.png}
+  \caption{DHCP-Ablauf in Wireshark.}
+  \label{fig:mac-dhcp}
+\end{figure}
 
 % =====================================================================
 %  d) OWASP ZAP
